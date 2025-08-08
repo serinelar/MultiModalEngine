@@ -1,4 +1,3 @@
 data/dataset_flickr30k.json
-data/flickr_captions.json
 *.pyc
 __pycache__/
