@@ -1,4 +1,6 @@
 import json
+import spacy
+nlp = spacy.load("en_core_web_sm")
 
 CAPTIONS_FILE = "data/flickr_captions.json"
 
@@ -9,10 +11,14 @@ def load_captions(file_path):
 
 def search_captions(captions: dict, keyword: str) -> dict:
     keyword = keyword.lower()
+    keyword_lemma = nlp(keyword)[0].lemma_  # e.g., "men" → "man"
     result = {}
 
     for image, caption_list in captions.items():
         for caption in caption_list:
+            caption_doc = nlp(caption.lower())  # Parse caption
+            caption_lemmas = [token.lemma_ for token in caption_doc]
+            
             if keyword in caption.lower():
                 if image not in result:
                     result[image] = []
@@ -28,7 +34,7 @@ if __name__ == "__main__":
         for i, caption in enumerate(image_captions, 1):
             print(f"  Caption {i}: {caption}")
 
-    searched = search_captions(captions, 'two')
+    searched = search_captions(captions, 'men')
     for image, matched_captions in searched.items():
         print(f"\nImage: {image}")
         for i, caption in enumerate(matched_captions, 1):
