@@ -3,7 +3,7 @@ charset-normalizer==3.4.2
 colorama==0.4.6
 filelock==3.18.0
 fsspec==2025.7.0
-huggingface-hub==0.34.3
+huggingface-hub==0.34.4
 idna==3.10
 Jinja2==3.1.6
 joblib==1.5.1
@@ -19,7 +19,7 @@ pytz==2025.2
 PyYAML==6.0.2
 regex==2025.7.34
 requests==2.32.4
-safetensors==0.6.1
+safetensors==0.6.2
 scikit-learn==1.7.1
 scipy==1.16.1
 sentence-transformers==5.1.0
