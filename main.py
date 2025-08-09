@@ -9,11 +9,22 @@ nlp = spacy.load("en_core_web_sm")
 
 # Project-root-aware paths (safe whether you run from src/ or project root)
 ROOT_DIR = Path(__file__).resolve().parents[1]
-CAPTIONS_JSON = "data/flickr_captions.json"
-CAPTIONS_PICKLE = "data/captions_data.pkl"
-EMBEDDINGS_NPY = "data/caption_embeddings.npy"
+
+# Toggle dataset
+USE_SMALL_DATASET = True  # Set to False for large Flickr30k
+
+if USE_SMALL_DATASET:
+    CAPTIONS_JSON = "data/flickr1k_small/captions.json"
+    CAPTION_EMBEDDINGS_NPY = "data/flickr1k_small/caption_embeddings.npy"
+    IMAGE_EMBEDDINGS_NPY = "data/flickr1k_small/image_embeddings.npy"
+    IMAGE_FILENAMES_NPY = "data/flickr1k_small/image_filenames.npy"
+else:
+    CAPTIONS_JSON = "data/flickr_captions.json"
+    CAPTIONS_PICKLE = "data/captions_data.pkl"
+    EMBEDDINGS_NPY = "data/caption_embeddings.npy"
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
+CLIP_MODEL = SentenceTransformer("clip-ViT-B-32")  # For image search
 
 def load_captions(CAPTIONS_JSON):
     with open(CAPTIONS_JSON, 'r', encoding='utf-8') as file:
@@ -111,6 +122,15 @@ def semantic_search_query(query: str, embeddings: np.ndarray, captions_filenames
         })
     return results
 
+def semantic_search_images(query, image_embeddings, image_filenames,
+                           model, top_k=10):
+    qvec = model.encode([query], convert_to_numpy=True, normalize_embeddings=True)[0].astype("float32")
+    sims = image_embeddings.dot(qvec)
+
+    top_idx = np.argsort(-sims)[:top_k]
+    results = [{"filename": image_filenames[i], "score": float(sims[i])} for i in top_idx]
+    return results
+
 if __name__ == "__main__":
 #    captions = dict(list(load_captions(CAPTIONS_FILE).items())[:10])
 #    processed = preprocess_captions(captions)
@@ -130,18 +150,29 @@ if __name__ == "__main__":
 
     filenames_list, orig_captions_list = flatten_captions_dict(captions_dict)
 
-    embeddings = np.load(str(EMBEDDINGS_NPY)).astype("float32")
-    embeddings = l2_normalize_rows(embeddings)  # normalize once
+    caption_embeddings = np.load(str(CAPTION_EMBEDDINGS_NPY)).astype("float32")
+    caption_embeddings = l2_normalize_rows(caption_embeddings)  # normalize once
 
-    if len(orig_captions_list) != embeddings.shape[0]:
-        raise RuntimeError(f"Length mismatch: captions={len(orig_captions_list)} embeddings={embeddings.shape[0]}")
+    if len(orig_captions_list) != caption_embeddings.shape[0]:
+        raise RuntimeError(f"Length mismatch: captions={len(orig_captions_list)} embeddings={caption_embeddings.shape[0]}")
+
+
+    # Load image embeddings
+    image_embeddings = np.load(IMAGE_EMBEDDINGS_NPY).astype("float32")
+    image_filenames = np.load(IMAGE_FILENAMES_NPY)
 
     query = "WOMAN AND A CHILD"   # change to test
     print(f"\nSearching for: {query}")
-    results = semantic_search_query(query, embeddings, filenames_list, orig_captions_list,
+    results = semantic_search_query(query, caption_embeddings, filenames_list, orig_captions_list,
                                     top_k=200, top_images=8)
 
     for r in results:
         print(f"\nImage: {r['filename']}  (score={r['score']:.4f})")
         for m in r['matches']:
             print(f"    • [{m['score']:.4f}] {m['caption']}")
+        
+    # IMAGE search example
+    print(f"\n[IMAGE SEARCH] Searching for: {query}")
+    results_img = semantic_search_images(query, image_embeddings, image_filenames, CLIP_MODEL, top_k=5)
+    for r in results_img:
+        print(f"Image: {r['filename']}  (score={r['score']:.4f})")

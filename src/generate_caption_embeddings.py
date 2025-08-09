@@ -14,9 +14,9 @@ model = SentenceTransformer("all-MiniLM-L6-v2")
 ROOT_DIR = Path(__file__).resolve().parents[1]
 
 # Paths
-CAPTIONS_FILE = ROOT_DIR / "data" / "flickr_captions.json"
-PICKLE_OUTPUT = ROOT_DIR / "data" / "captions_data.pkl"
-EMBEDDINGS_OUTPUT = ROOT_DIR / "data" / "caption_embeddings.npy"
+CAPTIONS_FILE = ROOT_DIR / "data" / "flickr1k_small" / "captions.json"
+PICKLE_OUTPUT = ROOT_DIR / "data" / "flickr1k_small" / "captions_data.pkl"
+EMBEDDINGS_OUTPUT = ROOT_DIR / "data" / "flickr1k_small" / "caption_embeddings.npy"
 
 def load_captions(path):
     with open(path, "r", encoding="utf-8") as f:
