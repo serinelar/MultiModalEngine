@@ -1,3 +1,5 @@
 data/dataset_flickr30k.json
 *.pyc
 __pycache__/
+data/captions_data.pkl
+data/caption_embeddings.npy
