@@ -4,8 +4,19 @@ from pathlib import Path
 import pickle
 import numpy as np
 from sentence_transformers import SentenceTransformer, util
+from transformers import BlipProcessor, BlipForConditionalGeneration
+from PIL import Image
+import torch
+import clip
+import os
 
 nlp = spacy.load("en_core_web_sm")
+
+# Load model & preprocess
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model, preprocess = clip.load("ViT-B/32", device=device)
+processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base").to(device)
 
 # Project-root-aware paths (safe whether you run from src/ or project root)
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -130,6 +141,23 @@ def semantic_search_images(query, image_embeddings, image_filenames,
     top_idx = np.argsort(-sims)[:top_k]
     results = [{"filename": image_filenames[i], "score": float(sims[i])} for i in top_idx]
     return results
+
+def search_by_image(query_image_path, image_embeddings, image_filenames, model, preprocess, top_k=5):
+    img = preprocess(Image.open(query_image_path)).unsqueeze(0).to(device)
+    with torch.no_grad():
+        query_features = model.encode_image(img)
+        query_features /= query_features.norm(dim=-1, keepdim=True)
+
+    sims = (query_features.cpu().numpy() @ image_embeddings.T)[0]
+    top_idx = np.argsort(-sims)[:top_k]
+
+    return [{"filename": image_filenames[i], "score": float(sims[i])} for i in top_idx]
+
+def generate_caption(image_path):
+    image = Image.open(image_path).convert("RGB")
+    inputs = blip_processor(image, return_tensors="pt").to(device)
+    out = blip_model.generate(**inputs)
+    return blip_processor.decode(out[0], skip_special_tokens=True)
 
 if __name__ == "__main__":
 #    captions = dict(list(load_captions(CAPTIONS_FILE).items())[:10])

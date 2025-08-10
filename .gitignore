@@ -4,3 +4,4 @@ __pycache__/
 data/flickr1k_small/captions.csv
 data/flickr1k_small/images
 data/flickr1k_small/captions.json
+data/caption_embeddings.npy
